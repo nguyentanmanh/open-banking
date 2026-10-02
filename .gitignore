@@ -1,0 +1,36 @@
+# Maven build output
+target/
+
+# IDEs and editors
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Logs and runtime files
+*.log
+*.pid
+logs/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+
+# Test and coverage output
+.coverage/
+coverage/
+jacoco.exec
+
+# Temporary files
+*.tmp
+*.swp
+*~
