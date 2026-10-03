@@ -1,0 +1,279 @@
+openapi: 3.0.3
+info:
+  title: Open Banking Transaction History API
+  version: 1.0.0
+  description: >-
+    API contract for Lay lich su giao dich, aligned with section 3.7 of
+    Appendix 01 issued with Circular 64/2024/TT-NHNN.
+servers:
+  - url: http://localhost:8080
+    description: Local Spring Boot service
+tags:
+  - name: Transactions
+paths:
+  /v1/accounts/transactions:
+    post:
+      tags: [Transactions]
+      summary: Get transaction history
+      operationId: getTransactionHistory
+      parameters:
+        - $ref: '#/components/parameters/Authorization'
+        - $ref: '#/components/parameters/RequestDateTime'
+        - $ref: '#/components/parameters/RequestId'
+        - $ref: '#/components/parameters/PsuIpAddress'
+        - $ref: '#/components/parameters/PsuUserAgent'
+        - $ref: '#/components/parameters/PsuDeviceOs'
+        - $ref: '#/components/parameters/ProviderId'
+        - $ref: '#/components/parameters/TppId'
+        - $ref: '#/components/parameters/ClientId'
+        - $ref: '#/components/parameters/JwsSignature'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionHistoryRequest'
+            example:
+              accountId: ACC-001
+              fromDate: '2026-09-01T00:00:00Z'
+              toDate: '2026-09-30T23:59:59Z'
+              page: 1
+              size: 50
+      responses:
+        '200':
+          description: Transaction history returned successfully
+          headers:
+            Request-ID:
+              $ref: '#/components/headers/RequestId'
+            Request-DateTime:
+              $ref: '#/components/headers/RequestDateTime'
+            JWS-Signature:
+              $ref: '#/components/headers/JwsSignature'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionHistoryResponse'
+              example:
+                pageCount: 1
+                pageNumber: 1
+                pageSize: 2
+                totalCount: 2
+                transactions:
+                  - amount: { value: 275000.00, currency: VND }
+                    balances: { value: 18425000.00, currency: VND }
+                    creditDebitIndicator: DBIT
+                    reversalIndicator: false
+                    valueDate: '2026-09-30T03:45:12Z'
+                    references:
+                      instructionIdentification: TXN-ACC-001-001
+                    relatedParties:
+                      debtor: { name: NGUYEN VAN A, bankCode: BANK0001, accountId: ACC-001 }
+                      creditor: { name: ABC MART, bankCode: BANK0002, accountId: ACC-MERCHANT-001 }
+                    additionalTransactionInformation: Card purchase at ABC Mart
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          $ref: '#/components/responses/WrongMethod'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+components:
+  parameters:
+    Authorization:
+      name: Authorization
+      in: header
+      required: true
+      description: OAuth 2.0 bearer access token; the self-contained issuer uses Client Credentials Grant.
+      schema: { type: string, pattern: '^Bearer\s+\S+$' }
+      example: Bearer example-access-token
+    RequestDateTime:
+      name: Request-DateTime
+      in: header
+      required: true
+      schema: { type: string, format: date-time }
+      example: '2026-10-03T06:30:00Z'
+    RequestId:
+      name: Request-ID
+      in: header
+      required: true
+      description: Unique request identifier, normally a UUID.
+      schema: { type: string, maxLength: 60 }
+      example: req-mulesoft-001
+    PsuIpAddress:
+      name: PSU-IP-Address
+      in: header
+      required: false
+      schema: { type: string, maxLength: 50 }
+      example: 203.0.113.10
+    PsuUserAgent:
+      name: PSU-User-Agent
+      in: header
+      required: false
+      schema: { type: string, maxLength: 200 }
+    PsuDeviceOs:
+      name: PSU-Device-OS
+      in: header
+      required: false
+      schema: { type: string, maxLength: 100 }
+      example: iOS 18
+    ProviderId:
+      name: Provider-ID
+      in: header
+      required: true
+      schema: { type: string, maxLength: 8 }
+      example: BANK0001
+    TppId:
+      name: TPP-ID
+      in: header
+      required: true
+      schema: { type: string, maxLength: 15 }
+      example: '123456789012345'
+    ClientId:
+      name: Client-ID
+      in: header
+      required: false
+      schema: { type: string, maxLength: 50 }
+      example: mulesoft-demo
+    JwsSignature:
+      name: JWS-Signature
+      in: header
+      required: true
+      description: Detached JWS signature as required by Circular 64.
+      schema: { type: string }
+      example: demo-detached-jws
+  headers:
+    RequestId:
+      required: true
+      schema: { type: string }
+      description: Value copied from the request header.
+    RequestDateTime:
+      required: true
+      schema: { type: string, format: date-time }
+      description: Value copied from the request header.
+    JwsSignature:
+      required: true
+      schema: { type: string }
+      description: Detached JWS signature for the response.
+  schemas:
+    TransactionHistoryRequest:
+      type: object
+      additionalProperties: false
+      required: [accountId, fromDate, toDate]
+      properties:
+        accountId: { type: string, maxLength: 34 }
+        fromDate: { type: string, format: date-time }
+        toDate: { type: string, format: date-time }
+        page: { type: integer, minimum: 1, default: 1 }
+        size: { type: integer, minimum: 1 }
+    TransactionHistoryResponse:
+      type: object
+      required: [pageCount, pageNumber, pageSize, transactions]
+      properties:
+        pageCount: { type: integer }
+        pageNumber: { type: integer }
+        nextPage: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer, format: int64 }
+        transactions:
+          type: array
+          items: { $ref: '#/components/schemas/Transaction' }
+    Transaction:
+      type: object
+      required: [amount, balances, creditDebitIndicator, valueDate, references, additionalTransactionInformation]
+      properties:
+        amount: { $ref: '#/components/schemas/Money' }
+        balances: { $ref: '#/components/schemas/Money' }
+        creditDebitIndicator:
+          type: string
+          enum: [CRDT, DBIT]
+        reversalIndicator: { type: boolean }
+        valueDate: { type: string, format: date-time }
+        references: { $ref: '#/components/schemas/References' }
+        relatedParties: { $ref: '#/components/schemas/RelatedParties' }
+        additionalTransactionInformation: { type: string, maxLength: 255 }
+        additionalInfo: { type: object, additionalProperties: true }
+    Money:
+      type: object
+      required: [value, currency]
+      properties:
+        value: { type: number }
+        currency: { type: string, pattern: '^[A-Z]{3}$' }
+    References:
+      type: object
+      required: [instructionIdentification]
+      properties:
+        instructionIdentification: { type: string, maxLength: 70 }
+    RelatedParties:
+      type: object
+      properties:
+        debtor: { $ref: '#/components/schemas/Party' }
+        creditor: { $ref: '#/components/schemas/Party' }
+    Party:
+      type: object
+      properties:
+        name: { type: string, maxLength: 140 }
+        bankCode: { type: string, maxLength: 8 }
+        accountId: { type: string, maxLength: 34 }
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [code, description]
+      properties:
+        code: { type: string }
+        description: { type: string }
+  responses:
+    BadRequest:
+      description: Invalid request or business data
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          examples:
+            accountNotExisted:
+              value: { code: ACCOUNT_NOT_EXISTED, description: 'Tài khoản không tồn tại' }
+            invalidFromDate:
+              value: { code: FROMDATE_INVALID, description: 'Dữ liệu trường fromDate không hợp lệ' }
+            requestIdRequired:
+              value: { code: REQUEST_ID_REQUIRED, description: 'Dữ liệu trường Request-ID không được rỗng' }
+    Unauthorized:
+      description: Token expired or JWS verification failed
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: EXPIRED_TOKEN, description: 'OAuth 2 token đã hết hạn' }
+    Forbidden:
+      description: Access denied
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: FORBIDDEN, description: 'Quyền truy cập đã bị từ chối' }
+    WrongMethod:
+      description: Wrong HTTP method
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: WRONG_METHOD, description: 'Sai phương thức HTTP.' }
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: INTERNAL_ERROR, description: 'Lỗi hệ thống' }
+    BadGateway:
+      description: Invalid response from an upstream server
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: BAD_GATEWAY, description: 'Phản hồi không hợp lệ từ máy chủ đích' }
+    GatewayTimeout:
+      description: Upstream server timeout
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: GATEWAY_TIMEOUT, description: 'Không nhận được phản hồi từ máy chủ đích' }

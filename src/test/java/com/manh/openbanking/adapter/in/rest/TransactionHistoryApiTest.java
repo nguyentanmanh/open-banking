@@ -1,6 +1,7 @@
 package com.manh.openbanking.adapter.in.rest;
 
 import com.manh.openbanking.bootstrap.Application;
+import com.manh.openbanking.infrastructure.security.JwtTokenService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,14 +19,17 @@ class TransactionHistoryApiTest {
     @Autowired
     MockMvc mvc;
 
+    @Autowired
+    JwtTokenService tokenService;
+
     @Test
     void returnsCircular64TransactionHistoryContract() throws Exception {
         mvc.perform(validRequest("ACC-001"))
             .andExpect(status().isOk())
             .andExpect(header().string("Content-Type", "application/json"))
-            .andExpect(header().string("Request-ID", "req-poc-001"))
+            .andExpect(header().string("Request-ID", "req-demo-001"))
             .andExpect(header().string("Request-DateTime", "2026-10-01T08:29:54Z"))
-            .andExpect(header().string("JWS-Signature", "poc-detached-jws"))
+            .andExpect(header().string("JWS-Signature", "demo-detached-jws"))
             .andExpect(jsonPath("$.pageCount").value(1))
             .andExpect(jsonPath("$.pageNumber").value(1))
             .andExpect(jsonPath("$.pageSize").value(2))
@@ -105,11 +109,13 @@ class TransactionHistoryApiTest {
     }
 
     private MockHttpServletRequestBuilder headers(MockHttpServletRequestBuilder request, boolean includeRequestId) {
-        request.header("Authorization", "Bearer poc-access-token")
+        String accessToken = tokenService.issue("tpp-standard", "transactions:read",
+            JwtTokenService.TokenScenario.VALID).accessToken();
+        request.header("Authorization", "Bearer " + accessToken)
             .header("TPP-ID", "123456789012345")
             .header("Provider-ID", "BANK0001")
             .header("Request-DateTime", "2026-10-01T08:29:54Z")
-            .header("JWS-Signature", "poc-detached-jws");
-        return includeRequestId ? request.header("Request-ID", "req-poc-001") : request;
+            .header("JWS-Signature", "demo-detached-jws");
+        return includeRequestId ? request.header("Request-ID", "req-demo-001") : request;
     }
 }

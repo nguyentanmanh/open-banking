@@ -14,6 +14,7 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -36,6 +37,12 @@ public class GlobalExceptionHandler {
     ResponseEntity<ExternalErrorResponse> wrongMethod(HttpRequestMethodNotSupportedException ex) {
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
             .body(new ExternalErrorResponse("WRONG_METHOD", "Sai phương thức HTTP."));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    ResponseEntity<ExternalErrorResponse> responseStatus(ResponseStatusException ex) {
+        String reason = ex.getReason() == null ? "request_failed" : ex.getReason();
+        return ResponseEntity.status(ex.getStatusCode()).body(new ExternalErrorResponse(reason, reason));
     }
 
     @ExceptionHandler(Exception.class)

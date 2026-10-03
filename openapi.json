@@ -1,0 +1,291 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/v1/accounts/transactions": {
+      "post": {
+        "tags": [
+          "transaction-history-controller"
+        ],
+        "operationId": "getTransactionHistory",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "pattern": "Bearer\\s+\\S+",
+              "type": "string"
+            }
+          },
+          {
+            "name": "TPP-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 15,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Provider-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 8,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Request-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 60,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Request-DateTime",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "PSU-IP-Address",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "PSU-User-Agent",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "PSU-Device-OS",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Client-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "maxLength": 50,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "JWS-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionHistoryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionHistory"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TransactionHistoryRequest": {
+        "required": [
+          "accountId",
+          "fromDate",
+          "toDate"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "maxLength": 34,
+            "minLength": 0,
+            "type": "string"
+          },
+          "fromDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "toDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "Money": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "currency": {
+            "type": "string"
+          }
+        }
+      },
+      "Party": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "bankCode": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          }
+        }
+      },
+      "References": {
+        "type": "object",
+        "properties": {
+          "instructionIdentification": {
+            "type": "string"
+          }
+        }
+      },
+      "RelatedParties": {
+        "type": "object",
+        "properties": {
+          "debtor": {
+            "$ref": "#/components/schemas/Party"
+          },
+          "creditor": {
+            "$ref": "#/components/schemas/Party"
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "balances": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "creditDebitIndicator": {
+            "type": "string",
+            "enum": [
+              "CRDT",
+              "DBIT"
+            ]
+          },
+          "reversalIndicator": {
+            "type": "boolean"
+          },
+          "valueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "references": {
+            "$ref": "#/components/schemas/References"
+          },
+          "relatedParties": {
+            "$ref": "#/components/schemas/RelatedParties"
+          },
+          "additionalTransactionInformation": {
+            "type": "string"
+          },
+          "additionalInfo": {
+            "type": "object"
+          }
+        }
+      },
+      "TransactionHistory": {
+        "type": "object",
+        "properties": {
+          "pageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nextPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          }
+        }
+      }
+    }
+  }
+}

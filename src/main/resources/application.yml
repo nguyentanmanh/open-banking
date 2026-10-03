@@ -22,11 +22,22 @@ server:
   port: ${PORT:8080}
   shutdown: graceful
 springdoc:
+  api-docs:
+    version: OPENAPI_3_0
   swagger-ui:
     path: /swagger-ui.html
 logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [service=${spring.application.name},requestId=%X{requestId:-},traceId=%X{traceId:-}] %logger{40} : %msg%n"
+open-banking:
+  jwt:
+    issuer: ${JWT_ISSUER:https://open-banking-7e1x.onrender.com}
+    audience: ${JWT_AUDIENCE:open-banking-api}
+    client-id: ${JWT_CLIENT_ID:tpp-standard}
+    client-secret: ${JWT_CLIENT_SECRET:change-me-before-deploy}
+    private-key-base64: ${JWT_PRIVATE_KEY_BASE64:}
+    token-ttl: ${JWT_TOKEN_TTL:PT5M}
+    test-scenarios-enabled: ${JWT_TEST_SCENARIOS_ENABLED:true}
 ---
 spring:
   config:

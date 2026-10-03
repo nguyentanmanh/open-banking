@@ -18,21 +18,83 @@ Domain is plain Java. The REST adapter calls `TransactionHistoryUseCase`; the ap
 later MuleSoft or core-banking adapter can replace that provider without changing the HTTP contract. ArchUnit verifies
 these dependency boundaries.
 
+Obtain a short-lived RS256 access token first:
+
 ```bash
+ACCESS_TOKEN=$(curl -sS -X POST http://localhost:8080/oauth2/token \
+  -u 'tpp-standard:change-me-before-deploy' \
+  -H 'Content-Type: application/x-www-form-urlencoded' \
+  --data-urlencode 'grant_type=client_credentials' \
+  --data-urlencode 'scope=transactions:read' | jq -r '.access_token')
+
 curl -i -X POST http://localhost:8080/v1/accounts/transactions \
   -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer poc-access-token' \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H 'TPP-ID: 123456789012345' \
   -H 'Provider-ID: BANK0001' \
-  -H 'Request-ID: req-poc-001' \
+  -H 'Request-ID: req-demo-001' \
   -H 'Request-DateTime: 2026-10-01T08:29:54Z' \
-  -H 'JWS-Signature: poc-not-verified' \
+  -H 'JWS-Signature: demo-not-verified' \
   --data '{"accountId":"ACC-001","fromDate":"2026-09-01T00:00:00Z","toDate":"2026-09-30T23:59:59Z","page":1,"size":50}'
 ```
 
-Use `ACC-404` for the Circular 64 `ACCOUNT_NOT_EXISTED` response and `ACC-500` for `INTERNAL_ERROR`. Authentication and
-JWS headers are contract-required, but their contents are intentionally not verified or cryptographically generated in
-this POC.
+Use `ACC-404` for the Circular 64 `ACCOUNT_NOT_EXISTED` response and `ACC-500` for `INTERNAL_ERROR`. The Bearer token is
+cryptographically verified by the backend. `JWS-Signature` remains contract-required but its detached-message signature
+is not verified in this demonstration environment.
+
+## Self-contained JWT authorization
+
+This repository intentionally includes a minimal authorization endpoint so the MuleSoft JWT Validation policy can be
+demonstrated without deploying Keycloak or another Render service:
+
+- `POST /oauth2/token`: OAuth-style `client_credentials` token endpoint protected by HTTP Basic authentication.
+- `GET /.well-known/jwks.json`: public RSA JWKS used by Mule Gateway and the backend Resource Server.
+- `POST /v1/accounts/transactions`: requires an RS256 JWT with issuer, audience, time and
+  `transactions:read` scope validation.
+
+This is a deliberately self-contained authorization boundary, not the recommended production topology. It authenticates the TPP
+client application, not a PSU/end-user. Consent and account-ownership authorization remain backend business concerns and
+are not claimed as implemented here. Production should use a dedicated authorization server such as Keycloak or an
+enterprise IdP, authorization-code/consent flows where a PSU context is required, managed key rotation, revocation,
+audit and high availability.
+
+Set these Render environment variables before exposing the service:
+
+```text
+JWT_ISSUER=https://open-banking-7e1x.onrender.com
+JWT_AUDIENCE=open-banking-api
+JWT_CLIENT_ID=tpp-standard
+JWT_CLIENT_SECRET=<strong secret; never commit it>
+JWT_TEST_SCENARIOS_ENABLED=true
+JWT_PRIVATE_KEY_BASE64=<single-line base64 PKCS#8 RSA private key>
+```
+
+Generate a persistent signing key once and store only its base64 value in Render Secrets:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -outform DER \
+  | base64 | tr -d '\n'
+```
+
+If `JWT_PRIVATE_KEY_BASE64` is absent, the application generates an ephemeral key at startup. That fallback is useful
+locally but invalidates existing tokens after every restart and can temporarily conflict with Mule's JWKS cache, so it
+must not be used for a stable deployment.
+
+For negative policy tests, the token endpoint supports `test_case=expired`, `wrong_issuer`, `wrong_audience`, and
+`missing_scope`. Disable these deliberately invalid token variants outside the demonstration environment by setting
+`JWT_TEST_SCENARIOS_ENABLED=false`.
+
+Mule JWT Validation policy settings for this deployment:
+
+```text
+JWT origin: HTTP Bearer Authentication Header
+Signing method: RSA / RS256
+JWKS URL: https://open-banking-7e1x.onrender.com/.well-known/jwks.json
+Issuer: https://open-banking-7e1x.onrender.com
+Audience: open-banking-api
+Expiration and Not-Before: mandatory
+Required scope: transactions:read
+```
 
 ```bash
 docker build -t open-banking .
@@ -42,10 +104,11 @@ docker run --rm -p 8080:8080 -e PORT=8080 open-banking
 ## Render
 
 Create a Render Web Service from this project directory and choose Docker as the runtime. Use `/actuator/health` as the
-health-check path. Render supplies `PORT`; no database, Kafka, secret, or external service is required for startup.
+health-check path. Render supplies `PORT`; configure the JWT secrets above for a stable shared environment.
 
 ## Current scope
 
-Only Transaction History is implemented. Responses are mocked as an implementation detail. There is no database, Kafka,
-OAuth server, JWS verification, mTLS, MuleSoft integration, or core-banking connection yet. Actuator exposes health,
-info, and metrics.
+Only Transaction History and a deliberately minimal JWT issuer are implemented. Responses are mocked as an
+implementation detail. There is no database, Kafka, PSU consent flow, account-ownership authorization, detached JWS
+verification, mTLS, managed authorization server, or core-banking connection yet. Actuator exposes health, info, and
+metrics.
