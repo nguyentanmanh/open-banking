@@ -1,3 +1,4 @@
 package com.manh.openbanking.domain.model;
 
-public record Pagination(int page, int pageSize, long totalRecords, int totalPages) { }
+public record Pagination(int pageCount, int pageNumber, Integer nextPage, int pageSize, Long totalCount) {
+}

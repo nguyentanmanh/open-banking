@@ -1,3 +1,6 @@
 package com.manh.openbanking.domain.model;
 
-public record Money(String amount, String currency) { }
+import java.math.BigDecimal;
+
+public record Money(BigDecimal value, String currency) {
+}

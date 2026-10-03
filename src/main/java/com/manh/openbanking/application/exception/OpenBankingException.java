@@ -10,6 +10,11 @@ public final class OpenBankingException extends RuntimeException {
         this.status = status;
     }
 
-    public String code() { return code; }
-    public int status() { return status; }
+    public String code() {
+        return code;
+    }
+
+    public int status() {
+        return status;
+    }
 }

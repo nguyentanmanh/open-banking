@@ -8,7 +8,9 @@ import com.manh.openbanking.domain.model.TransactionHistory;
 public final class TransactionHistoryService implements TransactionHistoryUseCase {
     private final TransactionHistoryProvider provider;
 
-    public TransactionHistoryService(TransactionHistoryProvider provider) { this.provider = provider; }
+    public TransactionHistoryService(TransactionHistoryProvider provider) {
+        this.provider = provider;
+    }
 
     @Override
     public TransactionHistory getTransactionHistory(TransactionHistoryQuery query) {

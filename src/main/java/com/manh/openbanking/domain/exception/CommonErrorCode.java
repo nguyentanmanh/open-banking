@@ -7,7 +7,19 @@ public enum CommonErrorCode implements ErrorCode {
     ACCESS_DENIED("OB-AUTH-002", "error.auth.access-denied"),
     EXTERNAL_TIMEOUT("OB-INTEGRATION-001", "error.integration.timeout"),
     EXTERNAL_UNAVAILABLE("OB-INTEGRATION-002", "error.integration.unavailable");
-    private final String code; private final String messageKey;
-    CommonErrorCode(String code, String messageKey) { this.code = code; this.messageKey = messageKey; }
-    public String code() { return code; } public String messageKey() { return messageKey; }
+    private final String code;
+    private final String messageKey;
+
+    CommonErrorCode(String code, String messageKey) {
+        this.code = code;
+        this.messageKey = messageKey;
+    }
+
+    public String code() {
+        return code;
+    }
+
+    public String messageKey() {
+        return messageKey;
+    }
 }

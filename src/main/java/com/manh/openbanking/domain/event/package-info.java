@@ -1,2 +1,4 @@
-/** Framework-free domain events. */
+/**
+ * Framework-free domain events.
+ */
 package com.manh.openbanking.domain.event;

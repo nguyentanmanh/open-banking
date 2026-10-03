@@ -9,8 +9,13 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ApplicationConfiguration {
-    @Bean TransactionHistoryProvider transactionHistoryProvider() { return new MockTransactionHistoryAdapter(); }
-    @Bean TransactionHistoryUseCase transactionHistoryUseCase(TransactionHistoryProvider provider) {
+    @Bean
+    TransactionHistoryProvider transactionHistoryProvider() {
+        return new MockTransactionHistoryAdapter();
+    }
+
+    @Bean
+    TransactionHistoryUseCase transactionHistoryUseCase(TransactionHistoryProvider provider) {
         return new TransactionHistoryService(provider);
     }
 }
