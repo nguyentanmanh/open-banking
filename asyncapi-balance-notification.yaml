@@ -1,8 +1,8 @@
-asyncapi: 2.6.0
+asyncapi: '2.6.0'
 
 info:
   title: Open Banking Balance Notification Events
-  version: 1.0.0
+  version: '1.0.1'
   description: >-
     Contract for balance change events accepted by the Open Banking integration
     layer and processed asynchronously by notification consumers.
@@ -12,14 +12,14 @@ defaultContentType: application/json
 servers:
   aiven-production:
     url: kafka-lab-platform-lab.i.aivencloud.com:25283
-    protocol: kafka-secure
-    description: Aiven Kafka cluster secured with TLS and SASL/SCRAM-SHA-256.
-    security:
-      - scramSha256: []
+    protocol: kafka
+    description: Aiven Kafka cluster. TLS and SASL/SCRAM-SHA-256 are configured as protected runtime properties.
 
 channels:
   open-banking.balance.changed.v1:
     description: Kafka topic carrying version 1 balance change events.
+    servers:
+      - aiven-production
     publish:
       operationId: publishBalanceChangedEvent
       summary: Publish a balance change event
@@ -34,25 +34,8 @@ channels:
       description: Mule consumes events independently and routes them to downstream notification channels.
       message:
         $ref: '#/components/messages/BalanceChanged'
-      bindings:
-        kafka:
-          groupId:
-            type: string
-            enum:
-              - balance-notification-service
-          bindingVersion: '0.5.0'
-    bindings:
-      kafka:
-        topic: open-banking.balance.changed.v1
-        partitions: 3
-        bindingVersion: '0.5.0'
 
 components:
-  securitySchemes:
-    scramSha256:
-      type: scramSha256
-      description: Credentials are stored as protected runtime properties and are not part of this contract.
-
   messages:
     BalanceChanged:
       name: BalanceChanged
@@ -92,7 +75,8 @@ components:
       properties:
         eventType:
           type: string
-          const: balance.changed
+          enum:
+            - balance.changed
         eventId:
           type: string
           minLength: 1
