@@ -95,6 +95,7 @@ public class JwtSecurityConfiguration {
                     "/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**")
                 .permitAll()
                 .requestMatchers("/v1/accounts/transactions").hasAuthority("SCOPE_transactions:read")
+                .requestMatchers("/internal/simulator/balance-changes").hasAuthority("SCOPE_transactions:read")
                 .anyRequest().authenticated())
             .oauth2ResourceServer(resourceServer -> resourceServer.jwt(Customizer.withDefaults()))
             .build();

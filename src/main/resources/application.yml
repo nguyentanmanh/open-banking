@@ -30,6 +30,13 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [service=${spring.application.name},requestId=%X{requestId:-},traceId=%X{traceId:-}] %logger{40} : %msg%n"
 open-banking:
+  mule:
+    balance-events:
+      base-url: ${MULE_BALANCE_EVENT_BASE_URL:http://localhost:8081}
+      path: ${MULE_BALANCE_EVENT_PATH:/v1/events/balance-changes}
+      api-key: ${MULE_X_API_KEY:local-api-key}
+      connect-timeout: ${MULE_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${MULE_READ_TIMEOUT:PT10S}
   jwt:
     issuer: ${JWT_ISSUER:https://open-banking-7e1x.onrender.com}
     audience: ${JWT_AUDIENCE:open-banking-api}

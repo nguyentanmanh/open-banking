@@ -137,6 +137,174 @@
           }
         }
       }
+    },
+    "/oauth2/token": {
+      "post": {
+        "tags": [
+          "authorization-endpoint"
+        ],
+        "operationId": "token",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "grant_type"
+                ],
+                "type": "object",
+                "properties": {
+                  "grant_type": {
+                    "type": "string"
+                  },
+                  "scope": {
+                    "type": "string"
+                  },
+                  "test_case": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/internal/simulator/balance-changes": {
+      "post": {
+        "tags": [
+          "balance-change-simulator-endpoint"
+        ],
+        "operationId": "publish",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "pattern": "Bearer\\s+\\S+",
+              "type": "string"
+            }
+          },
+          {
+            "name": "TPP-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 15,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Provider-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 8,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Request-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "maxLength": 60,
+              "minLength": 0,
+              "type": "string"
+            }
+          },
+          {
+            "name": "Request-DateTime",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?Z$",
+              "type": "string"
+            }
+          },
+          {
+            "name": "JWS-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BalanceChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptedBalanceEvent"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "tags": [
+          "authorization-endpoint"
+        ],
+        "operationId": "jwks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -283,6 +451,68 @@
             "items": {
               "$ref": "#/components/schemas/Transaction"
             }
+          }
+        }
+      },
+      "BalanceChangeRequest": {
+        "required": [
+          "accountId",
+          "amount",
+          "balanceAfter",
+          "currency",
+          "direction",
+          "occurredAt",
+          "transactionId"
+        ],
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "accountId": {
+            "maxLength": 34,
+            "minLength": 0,
+            "type": "string"
+          },
+          "transactionId": {
+            "maxLength": 70,
+            "minLength": 0,
+            "type": "string"
+          },
+          "amount": {
+            "minimum": 0.0,
+            "exclusiveMinimum": true,
+            "type": "number"
+          },
+          "currency": {
+            "minLength": 1,
+            "pattern": "^[A-Z]{3}$",
+            "type": "string"
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "CREDIT",
+              "DEBIT"
+            ]
+          },
+          "balanceAfter": {
+            "type": "number"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "AcceptedBalanceEvent": {
+        "type": "object",
+        "properties": {
+          "eventId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
           }
         }
       }

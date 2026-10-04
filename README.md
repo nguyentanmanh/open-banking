@@ -80,6 +80,26 @@ If `JWT_PRIVATE_KEY_BASE64` is absent, the application generates an ephemeral ke
 locally but invalidates existing tokens after every restart and can temporarily conflict with Mule's JWKS cache, so it
 must not be used for a stable deployment.
 
+### Balance change event simulator
+
+`POST /internal/simulator/balance-changes` simulates a Core Banking balance change. It creates an event ID when absent,
+then forwards the event and the inbound trace/security headers to Mule's HTTP event-ingress adapter. Mule acknowledges
+the event with HTTP 202, publishes it to its VM queue, and processes the notification asynchronously.
+
+Configure the outbound Mule connection with:
+
+```text
+MULE_BALANCE_EVENT_BASE_URL=https://open-banking-rukrss.5sc6y6-4.usa-e2.cloudhub.io
+MULE_BALANCE_EVENT_PATH=/v1/events/balance-changes
+MULE_X_API_KEY=<Anypoint application client ID; never commit it>
+MULE_CONNECT_TIMEOUT=PT3S
+MULE_READ_TIMEOUT=PT10S
+```
+
+The simulator endpoint requires a valid `transactions:read` bearer token. The token is forwarded only to Mule over
+HTTPS and is never logged. This HTTP-to-VM bridge demonstrates asynchronous handoff; a production deployment should
+use a durable broker and a dedicated backend service identity/scope.
+
 For negative policy tests, the token endpoint supports `test_case=expired`, `wrong_issuer`, `wrong_audience`, and
 `missing_scope`. Disable these deliberately invalid token variants outside the demonstration environment by setting
 `JWT_TEST_SCENARIOS_ENABLED=false`.

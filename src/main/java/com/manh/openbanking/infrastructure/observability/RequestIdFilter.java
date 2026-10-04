@@ -43,6 +43,10 @@ public class RequestIdFilter extends OncePerRequestFilter {
     }
 
     private String operation(HttpServletRequest request) {
-        return request.getRequestURI().equals("/v1/accounts/transactions") ? "transaction-history" : "http-request";
+        return switch (request.getRequestURI()) {
+            case "/v1/accounts/transactions" -> "transaction-history";
+            case "/internal/simulator/balance-changes" -> "balance-change-simulator";
+            default -> "http-request";
+        };
     }
 }
