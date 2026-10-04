@@ -18,7 +18,7 @@ spring:
         username="${KAFKA_USERNAME:mule-open-banking}"
         password="${KAFKA_PASSWORD:change-me-before-running}";
     ssl:
-      trust-store-location: classpath:certs/aiven-truststore.p12
+      trust-store-location: ${KAFKA_TRUSTSTORE_LOCATION:classpath:certs/aiven-truststore.p12}
       trust-store-password: ${KAFKA_TRUSTSTORE_PASSWORD:changeit}
       trust-store-type: PKCS12
     producer:
