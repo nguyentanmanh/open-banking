@@ -1,0 +1,141 @@
+asyncapi: 2.6.0
+
+info:
+  title: Open Banking Balance Notification Events
+  version: 1.0.0
+  description: >-
+    Contract for balance change events accepted by the Open Banking integration
+    layer and processed asynchronously by notification consumers.
+
+defaultContentType: application/json
+
+servers:
+  aiven-production:
+    url: kafka-lab-platform-lab.i.aivencloud.com:25283
+    protocol: kafka-secure
+    description: Aiven Kafka cluster secured with TLS and SASL/SCRAM-SHA-256.
+    security:
+      - scramSha256: []
+
+channels:
+  open-banking.balance.changed.v1:
+    description: Kafka topic carrying version 1 balance change events.
+    publish:
+      operationId: publishBalanceChangedEvent
+      summary: Publish a balance change event
+      description: >-
+        Published after a balance-affecting transaction. Consumers use this event
+        to create customer balance notifications.
+      message:
+        $ref: '#/components/messages/BalanceChanged'
+    subscribe:
+      operationId: consumeBalanceChangedEvent
+      summary: Consume balance changes for customer notification
+      description: Mule consumes events independently and routes them to downstream notification channels.
+      message:
+        $ref: '#/components/messages/BalanceChanged'
+      bindings:
+        kafka:
+          groupId:
+            type: string
+            enum:
+              - balance-notification-service
+          bindingVersion: '0.5.0'
+    bindings:
+      kafka:
+        topic: open-banking.balance.changed.v1
+        partitions: 3
+        bindingVersion: '0.5.0'
+
+components:
+  securitySchemes:
+    scramSha256:
+      type: scramSha256
+      description: Credentials are stored as protected runtime properties and are not part of this contract.
+
+  messages:
+    BalanceChanged:
+      name: BalanceChanged
+      title: Balance changed
+      summary: A transaction changed the available account balance.
+      contentType: application/json
+      correlationId:
+        location: $message.payload#/correlationId
+      payload:
+        $ref: '#/components/schemas/BalanceChangedPayload'
+      examples:
+        - name: CreditBalanceChange
+          summary: Incoming credit notification
+          payload:
+            eventType: balance.changed
+            eventId: 93c2cf82-3ea1-4d0d-a8f9-2ef67c430d69
+            correlationId: req-balance-001
+            occurredAt: '2026-10-04T15:00:00Z'
+            data:
+              accountId: ACC-0012345678
+              transactionId: TXN-20261004-001
+              amount: 150000
+              currency: VND
+              direction: CREDIT
+              balanceAfter: 1250000
+
+  schemas:
+    BalanceChangedPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - eventType
+        - eventId
+        - correlationId
+        - occurredAt
+        - data
+      properties:
+        eventType:
+          type: string
+          const: balance.changed
+        eventId:
+          type: string
+          minLength: 1
+          description: Unique identifier used for idempotency and tracing.
+        correlationId:
+          type: string
+          minLength: 1
+          description: Correlates the HTTP ingress request with asynchronous processing.
+        occurredAt:
+          type: string
+          format: date-time
+        data:
+          $ref: '#/components/schemas/BalanceChangedData'
+
+    BalanceChangedData:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - transactionId
+        - amount
+        - currency
+        - direction
+        - balanceAfter
+      properties:
+        accountId:
+          type: string
+          minLength: 1
+          maxLength: 34
+        transactionId:
+          type: string
+          minLength: 1
+          maxLength: 70
+        amount:
+          type: number
+          exclusiveMinimum: 0
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+        direction:
+          type: string
+          enum:
+            - CREDIT
+            - DEBIT
+        balanceAfter:
+          type: number

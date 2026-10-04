@@ -36,10 +36,10 @@ class BalanceChangeSimulatorApiTest {
     BalanceChangeSimulatorUseCase useCase;
 
     @Test
-    void forwardsBalanceChangeEventToMule() throws Exception {
+    void publishesBalanceChangeEventToKafka() throws Exception {
         when(useCase.publish(any())).thenAnswer(invocation -> {
             BalanceChangeSubmission submission = invocation.getArgument(0);
-            return new BalanceChangeSimulatorUseCase.AcceptedBalanceEvent(submission.event().eventId(), "FORWARDED");
+            return new BalanceChangeSimulatorUseCase.AcceptedBalanceEvent(submission.event().eventId(), "PUBLISHED");
         });
         String token = tokenService.issue("tpp-standard", "transactions:read", Set.of("transactions:read"),
             JwtTokenService.TokenScenario.VALID).accessToken();
@@ -67,7 +67,7 @@ class BalanceChangeSimulatorApiTest {
             .andExpect(status().isAccepted())
             .andExpect(header().string("Location", "/internal/simulator/balance-changes/evt-001"))
             .andExpect(jsonPath("$.eventId").value("evt-001"))
-            .andExpect(jsonPath("$.status").value("FORWARDED"));
+            .andExpect(jsonPath("$.status").value("PUBLISHED"));
 
         var captor = org.mockito.ArgumentCaptor.forClass(BalanceChangeSubmission.class);
         verify(useCase).publish(captor.capture());
@@ -79,6 +79,7 @@ class BalanceChangeSimulatorApiTest {
     void publishesSimulatorEndpointInOpenApi() throws Exception {
         mvc.perform(get("/v3/api-docs"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.paths['/internal/simulator/balance-changes'].post").exists());
+            .andExpect(jsonPath("$.paths['/internal/simulator/balance-changes'].post").exists())
+            .andExpect(jsonPath("$.paths['/internal/simulator/balance-changes'].post.responses['202']").exists());
     }
 }

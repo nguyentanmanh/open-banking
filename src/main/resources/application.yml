@@ -8,6 +8,26 @@ spring:
   messages:
     basename: messages
     fallback-to-system-locale: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka-lab-platform-lab.i.aivencloud.com:25283}
+    properties:
+      security.protocol: SASL_SSL
+      sasl.mechanism: SCRAM-SHA-256
+      sasl.jaas.config: >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="${KAFKA_USERNAME:mule-open-banking}"
+        password="${KAFKA_PASSWORD:change-me-before-running}";
+    ssl:
+      trust-store-location: classpath:certs/aiven-truststore.p12
+      trust-store-password: ${KAFKA_TRUSTSTORE_PASSWORD:changeit}
+      trust-store-type: PKCS12
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+        spring.json.add.type.headers: false
 management:
   endpoints:
     web:
@@ -30,13 +50,10 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [service=${spring.application.name},requestId=%X{requestId:-},traceId=%X{traceId:-}] %logger{40} : %msg%n"
 open-banking:
-  mule:
+  kafka:
     balance-events:
-      base-url: ${MULE_BALANCE_EVENT_BASE_URL:http://localhost:8081}
-      path: ${MULE_BALANCE_EVENT_PATH:/v1/events/balance-changes}
-      api-key: ${MULE_X_API_KEY:local-api-key}
-      connect-timeout: ${MULE_CONNECT_TIMEOUT:PT3S}
-      read-timeout: ${MULE_READ_TIMEOUT:PT10S}
+      topic: ${KAFKA_BALANCE_EVENT_TOPIC:open-banking.balance.changed.v1}
+      publish-timeout: ${KAFKA_PUBLISH_TIMEOUT:PT10S}
   jwt:
     issuer: ${JWT_ISSUER:https://open-banking-7e1x.onrender.com}
     audience: ${JWT_AUDIENCE:open-banking-api}

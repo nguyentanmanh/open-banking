@@ -14,6 +14,6 @@ public class BalanceChangeSimulatorService implements BalanceChangeSimulatorUseC
     @Override
     public AcceptedBalanceEvent publish(BalanceChangeSubmission submission) {
         publisher.publish(submission);
-        return new AcceptedBalanceEvent(submission.event().eventId(), "FORWARDED");
+        return new AcceptedBalanceEvent(submission.event().eventId(), "PUBLISHED");
     }
 }

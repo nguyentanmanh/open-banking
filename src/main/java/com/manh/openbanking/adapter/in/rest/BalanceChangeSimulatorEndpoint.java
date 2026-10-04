@@ -4,6 +4,8 @@ import com.manh.openbanking.application.command.BalanceChangeSubmission;
 import com.manh.openbanking.application.port.in.BalanceChangeSimulatorUseCase;
 import com.manh.openbanking.application.port.in.BalanceChangeSimulatorUseCase.AcceptedBalanceEvent;
 import com.manh.openbanking.domain.event.BalanceChangedEvent;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -32,6 +34,8 @@ public class BalanceChangeSimulatorEndpoint {
 
     @PostMapping(value = "/balance-changes", consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Simulate a balance change and publish the event to Kafka")
+    @ApiResponse(responseCode = "202", description = "Balance change event published to Kafka")
     public ResponseEntity<AcceptedBalanceEvent> publish(
         @RequestHeader("Authorization")
         @Pattern(regexp = "Bearer\\s+\\S+", message = "Authorization must use Bearer token format")
