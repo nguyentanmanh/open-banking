@@ -14,6 +14,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.Map;
 
 /**
@@ -38,12 +39,13 @@ public class AuthorizationEndpoint {
                                      @RequestParam("grant_type") String grantType,
                                      @RequestParam(value = "scope", required = false) String scope,
                                      @RequestParam(value = "test_case", required = false) String testCase) {
-        authenticateClient(authorization);
+        JwtProperties.Client client = authenticateClient(authorization);
         if (!"client_credentials".equals(grantType)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "unsupported_grant_type");
         }
         try {
-            IssuedToken token = tokenService.issue(properties.clientId(), scope, TokenScenario.from(testCase));
+            IssuedToken token = tokenService.issue(client.clientId(), scope, new HashSet<>(client.scopes()),
+                TokenScenario.from(testCase));
             return Map.of(
                 "access_token", token.accessToken(),
                 "token_type", "Bearer",
@@ -61,7 +63,7 @@ public class AuthorizationEndpoint {
             .body(new JWKSet(rsaKey.toPublicJWK()).toJSONObject());
     }
 
-    private void authenticateClient(String authorization) {
+    private JwtProperties.Client authenticateClient(String authorization) {
         if (authorization == null || !authorization.startsWith("Basic ")) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_client");
         }
@@ -69,11 +71,19 @@ public class AuthorizationEndpoint {
             String credentials = new String(Base64.getDecoder().decode(authorization.substring(6)),
                 StandardCharsets.UTF_8);
             int separator = credentials.indexOf(':');
-            if (separator < 0
-                || !constantTimeEquals(credentials.substring(0, separator), properties.clientId())
-                || !constantTimeEquals(credentials.substring(separator + 1), properties.clientSecret())) {
+            if (separator < 0) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_client");
             }
+            String clientId = credentials.substring(0, separator);
+            String clientSecret = credentials.substring(separator + 1);
+            JwtProperties.Client client = properties.clients().stream()
+                .filter(candidate -> constantTimeEquals(clientId, candidate.clientId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_client"));
+            if (!constantTimeEquals(clientSecret, client.clientSecret())) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_client");
+            }
+            return client;
         } catch (IllegalArgumentException exception) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid_client", exception);
         }

@@ -9,6 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
@@ -41,7 +43,7 @@ class AuthorizationApiTest {
     @Test
     void issuesValidClientCredentialsToken() throws Exception {
         String response = mvc.perform(post("/oauth2/token")
-                .with(httpBasic("tpp-standard", "change-me-before-deploy"))
+                .with(httpBasic("tpp-standard", "local-standard-secret"))
                 .contentType("application/x-www-form-urlencoded")
                 .param("grant_type", "client_credentials")
                 .param("scope", "transactions:read"))
@@ -66,9 +68,32 @@ class AuthorizationApiTest {
     }
 
     @Test
+    void issuesTokenForSecondConfiguredTpp() throws Exception {
+        mvc.perform(post("/oauth2/token")
+                .with(httpBasic("tpp-premium", "local-premium-secret"))
+                .contentType("application/x-www-form-urlencoded")
+                .param("grant_type", "client_credentials")
+                .param("scope", "transactions:read"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.token_type").value("Bearer"))
+            .andExpect(jsonPath("$.scope").value("transactions:read"));
+    }
+
+    @Test
+    void rejectsScopeNotAssignedToClient() throws Exception {
+        mvc.perform(post("/oauth2/token")
+                .with(httpBasic("tpp-standard", "local-standard-secret"))
+                .contentType("application/x-www-form-urlencoded")
+                .param("grant_type", "client_credentials")
+                .param("scope", "payments:write"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("Unsupported scope"));
+    }
+
+    @Test
     void issuesExpiredTokenForNegativeTesting() throws Exception {
         String response = mvc.perform(post("/oauth2/token")
-                .with(httpBasic("tpp-standard", "change-me-before-deploy"))
+                .with(httpBasic("tpp-standard", "local-standard-secret"))
                 .contentType("application/x-www-form-urlencoded")
                 .param("grant_type", "client_credentials")
                 .param("test_case", "expired"))
@@ -81,7 +106,7 @@ class AuthorizationApiTest {
     @Test
     void tokenWithoutRequiredScopeCannotAccessTransactions() throws Exception {
         String response = mvc.perform(post("/oauth2/token")
-                .with(httpBasic("tpp-standard", "change-me-before-deploy"))
+                .with(httpBasic("tpp-standard", "local-standard-secret"))
                 .contentType("application/x-www-form-urlencoded")
                 .param("grant_type", "client_credentials")
                 .param("test_case", "missing_scope"))
@@ -97,9 +122,9 @@ class AuthorizationApiTest {
 
     @Test
     void rejectsWrongIssuerAndAudienceDuringJwtValidation() {
-        String wrongIssuer = tokenService.issue("tpp-standard", "transactions:read",
+        String wrongIssuer = tokenService.issue("tpp-standard", "transactions:read", Set.of("transactions:read"),
             JwtTokenService.TokenScenario.WRONG_ISSUER).accessToken();
-        String wrongAudience = tokenService.issue("tpp-standard", "transactions:read",
+        String wrongAudience = tokenService.issue("tpp-standard", "transactions:read", Set.of("transactions:read"),
             JwtTokenService.TokenScenario.WRONG_AUDIENCE).accessToken();
 
         assertThatThrownBy(() -> decoder.decode(wrongIssuer)).hasMessageContaining("iss claim");

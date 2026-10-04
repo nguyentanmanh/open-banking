@@ -13,8 +13,6 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class JwtTokenService {
-    private static final Set<String> SUPPORTED_SCOPES = Set.of("transactions:read");
-
     private final JwtEncoder encoder;
     private final JwtProperties properties;
 
@@ -23,11 +21,12 @@ public class JwtTokenService {
         this.properties = properties;
     }
 
-    public IssuedToken issue(String clientId, String requestedScope, TokenScenario scenario) {
+    public IssuedToken issue(String clientId, String requestedScope, Set<String> allowedScopes,
+                             TokenScenario scenario) {
         if (scenario != TokenScenario.VALID && !properties.testScenariosEnabled()) {
             throw new IllegalArgumentException("JWT test scenarios are disabled");
         }
-        String scope = scenario == TokenScenario.MISSING_SCOPE ? "" : normalizeScope(requestedScope);
+        String scope = scenario == TokenScenario.MISSING_SCOPE ? "" : normalizeScope(requestedScope, allowedScopes);
         Instant now = Instant.now();
         Instant issuedAt = scenario == TokenScenario.EXPIRED ? now.minusSeconds(600) : now;
         Instant notBefore = issuedAt;
@@ -56,12 +55,12 @@ public class JwtTokenService {
         return new IssuedToken(value, Math.max(0, expiresAt.getEpochSecond() - now.getEpochSecond()), scope);
     }
 
-    private String normalizeScope(String requestedScope) {
+    private String normalizeScope(String requestedScope, Set<String> allowedScopes) {
         if (requestedScope == null || requestedScope.isBlank()) {
-            return "transactions:read";
+            return String.join(" ", allowedScopes);
         }
         List<String> requested = List.of(requestedScope.trim().split("\\s+"));
-        if (!SUPPORTED_SCOPES.containsAll(requested)) {
+        if (!allowedScopes.containsAll(requested)) {
             throw new IllegalArgumentException("Unsupported scope");
         }
         return String.join(" ", requested);

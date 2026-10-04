@@ -33,11 +33,18 @@ open-banking:
   jwt:
     issuer: ${JWT_ISSUER:https://open-banking-7e1x.onrender.com}
     audience: ${JWT_AUDIENCE:open-banking-api}
-    client-id: ${JWT_CLIENT_ID:tpp-standard}
-    client-secret: ${JWT_CLIENT_SECRET:change-me-before-deploy}
     private-key-base64: ${JWT_PRIVATE_KEY_BASE64:}
     token-ttl: ${JWT_TOKEN_TTL:PT5M}
     test-scenarios-enabled: ${JWT_TEST_SCENARIOS_ENABLED:true}
+    clients:
+      - client-id: tpp-standard
+        client-secret: ${TPP_STANDARD_CLIENT_SECRET:local-standard-secret}
+        scopes:
+          - transactions:read
+      - client-id: tpp-premium
+        client-secret: ${TPP_PREMIUM_CLIENT_SECRET:local-premium-secret}
+        scopes:
+          - transactions:read
 ---
 spring:
   config:

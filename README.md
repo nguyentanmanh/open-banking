@@ -22,7 +22,7 @@ Obtain a short-lived RS256 access token first:
 
 ```bash
 ACCESS_TOKEN=$(curl -sS -X POST http://localhost:8080/oauth2/token \
-  -u 'tpp-standard:change-me-before-deploy' \
+  -u 'tpp-standard:local-standard-secret' \
   -H 'Content-Type: application/x-www-form-urlencoded' \
   --data-urlencode 'grant_type=client_credentials' \
   --data-urlencode 'scope=transactions:read' | jq -r '.access_token')
@@ -63,8 +63,8 @@ Set these Render environment variables before exposing the service:
 ```text
 JWT_ISSUER=https://open-banking-7e1x.onrender.com
 JWT_AUDIENCE=open-banking-api
-JWT_CLIENT_ID=tpp-standard
-JWT_CLIENT_SECRET=<strong secret; never commit it>
+TPP_STANDARD_CLIENT_SECRET=<strong secret for tpp-standard; never commit it>
+TPP_PREMIUM_CLIENT_SECRET=<strong secret for tpp-premium; never commit it>
 JWT_TEST_SCENARIOS_ENABLED=true
 JWT_PRIVATE_KEY_BASE64=<single-line base64 PKCS#8 RSA private key>
 ```
